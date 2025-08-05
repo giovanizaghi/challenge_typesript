@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Task Manager</title>
+</head>
+
+<body>
+    <h1>Task Manager</h1>
+
+    <form id="taskForm">
+        <input type="hidden" id="taskId" />
+        <input type="text" id="title" placeholder="Title" required />
+        <input type="text" id="description" placeholder="Description" required />
+        <button type="submit" id="submitBtn">Add Task</button>
+    </form>
+
+
+
+    <h2>Tasks</h2>
+    <ul id="taskList"></ul>
+
+    <script>
+        const API_URL = 'http://localhost:5000/tasks';
+
+        const taskForm = document.getElementById('taskForm');
+        const taskIdField = document.getElementById('taskId');
+        const titleField = document.getElementById('title');
+        const descField = document.getElementById('description');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Load tasks and show them
+        async function loadTasks() {
+            const res = await fetch(API_URL);
+            const tasks = await res.json();
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.textContent = `[${task[0]}] ${task[1]}: ${task[2]} `;
+
+                // Delete button
+                const delBtn = document.createElement('button');
+                delBtn.textContent = 'Delete';
+                delBtn.onclick = async () => {
+                    if (confirm(`Delete task #${task[0]}?`)) {
+                        await fetch(`${API_URL}/${task[0]}`, { method: 'DELETE' });
+                        loadTasks();
+                    }
+                };
+
+                // Edit button
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edit';
+                editBtn.onclick = () => {
+                    taskIdField.value = task[0];
+                    titleField.value = task[1];
+                    descField.value = task[2];
+                    submitBtn.textContent = 'Update Task';
+                };
+
+                li.appendChild(editBtn);
+                li.appendChild(delBtn);
+                taskList.appendChild(li);
+            });
+        }
+
+        // Handle add or update
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = taskIdField.value;
+            const title = titleField.value;
+            const description = descField.value;
+
+            if (id) {
+                // Update task
+                await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description })
+                });
+            } else {
+                // Create task
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description })
+                });
+            }
+
+            // Reset form
+            taskForm.reset();
+            taskIdField.value = '';
+            submitBtn.textContent = 'Add Task';
+
+            loadTasks();
+        });
+
+        loadTasks();
+    </script>
+
+
+</body>
+
+</html>
